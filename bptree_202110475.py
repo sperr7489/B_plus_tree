@@ -31,12 +31,12 @@ class B_PLUS_TREE:
             if(node.parent is None):
                 # parent가 없다면 root겠지?
                 self.root = node
-                print("root되었니?")
 
         elif len(node.keys) > self.order-1:
             # 여기서는 이제 split을 해주어야 한다.두개의 노드와 하나의
             # 이부분이 leaf node에 대한 것이라면
-            node_Check = node
+            node_Check = node  # 들어온 node를 왜 따로빼둔거지???
+            # 이건 말이 안돼! 이미 바뀐 노드가 들어왔는데 node가 같은게 왜있음!
             if (node.isLeaf == True):
                 # leaf node일때는 이제 선형 탐색이 가능해지자나? 정렬이 되어있는 상태지!
                 mid = self.order/2
@@ -50,14 +50,11 @@ class B_PLUS_TREE:
                     node.parent.isLeaf = False
                     node.parent.keys.append(temp.keys[0])
                     self.root = node.parent  # root를 여기서 변경하여 준다.
-                    print(node.parent.keys)
-                    print("자 root가 바뀌었니?")
                     # 앞에꺼와 뒤에꺼 subtree로 추가
                     node.parent.subTrees += [node, temp]
                 elif node.parent is not None:
                     # parent가 이미 있다면
                     node.parent.keys.append(temp.keys[0])
-                    print("추가가 되었는지 확인")
                     node.parent.keys.sort()
                     self.split(node.parent)
                     for element in node.parent.subTrees:
@@ -69,20 +66,23 @@ class B_PLUS_TREE:
 
             else:
                 # leaf node가 아니라 index node일때,혹은 root node.
+                # INDEX노드가 나눠질땐 subtree에 대한 처리도 따로 해주어야만 함.
                 mid = self.order/2
                 temp = Node()  # 분할할 노드
-                temp.keys = node.keys[mid:]  # 이부분은 뒤에꺼로
+                temp.keys = node.keys[mid+1:]  # 이부분은 뒤에꺼로
                 node.keys = node.keys[:mid]  # 이부분은 앞에껄로
+                up_to_parentKey = node.keys[mid]
                 if node.parent is None:  # parent가 생기고 이는 root가 되겠지?
                     node.parent = Node()
                     temp.parent = node.parent
                     node.parent.isLeaf = False
                     self.root = node.parent
-                    node.parent.keys.append(temp.keys[0])
-                    # 앞에꺼와 뒤에꺼 subtree로 추가
+                    node.parent.keys.append(up_to_parentKey)
+                    # 여기까지 되면 parent를 만들긴함.root노드 생성
+                    # 기존 서브트리가 있긴했다!
                     node.parent.subTrees += [node, temp]
                 else:
-                    node.parent.keys.append(temp.keys[0])
+                    node.parent.keys.append(up_to_parentKey)
                     node.parent.keys.sort()
                     self.split(node.parent)  # 재귀.
                     for element in node.parent.subTrees:
@@ -121,12 +121,11 @@ class B_PLUS_TREE:
         pass
 
     def print_root(self):
-        # l = "["
-        # for k in self.root.keys:
-        #     l += "{},".format(k)
-        # l = l[:-1] + "]"
-        # print(l)
-        print(self.root.keys)
+        l = "["
+        for k in self.root.keys:
+            l += "{},".format(k)
+        l = l[:-1] + "]"
+        print(l)
         pass
 
     def print_tree(self):
