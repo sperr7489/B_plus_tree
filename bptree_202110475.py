@@ -28,16 +28,18 @@ class B_PLUS_TREE:
     # split 함수는 분할 가능성과 root를 알려준다.
 
     def split(self, node):
-        if len(node.keys) <= self.order-1:
+        if len(node.keys) < self.order:
             # 이경우엔 split할 필요가 없다.
             if node.parent is None:
                 # parent가 없다면 root겠지?
                 print("??")
                 self.root = node
+            else:
+                print("{}: 11입력했을 때 부모노드 뭔데".format(node.parent.keys))
 
     # 분할이 일어나는 시점.
         elif len(node.keys) == self.order:
-            mid = self.order//2
+            mid = self.order/2
 
             # 여기서는 이제 split을 해주어야 한다.두개의 노드와 하나의
             # 이부분이 leaf node에 대한 것이라면
@@ -47,6 +49,9 @@ class B_PLUS_TREE:
                 temp = Node()  # 분할할 노드
                 temp.keys = node.keys[mid:]  # 이부분은 뒤에꺼로
                 node.keys = node.keys[:mid]  # 이부분은 앞에껄로
+                # node의 nextnode가 존재하는 상황일때
+                if node.nextNode is not None:
+                    temp.nextNode = node.nextNode
                 node.nextNode = temp  # 이걸로 leaf node의 분할은 끝!
                 # MEMORY 위치가 같아진다.
                 if node.parent is None:  # parent가 없던 상태에서 생긴거면 root가 바뀐거겠지?
@@ -61,15 +66,22 @@ class B_PLUS_TREE:
                     # 새로 생긴 parent이기 때문에 subtree들의 정렬은 따로 해주지 않아도 된다.
                     node.parent.subTrees = [node, temp]
                 else:
-                    # is leaf에서 parent가 있다면 추가를 어떻게 해주어야 할까?
+                    # isleaf에서 parent가 있다면 추가를 어떻게 해주어야 할까?
                     # parent가 이미 있다면
-                    node.parent.isLeaf = False
+
                     temp.parent = node.parent
+                    print("{}: 12을 입력했을때 부모노드가 이상해".format(node.parent.keys))
+                    print(node.keys)
+
                     print("이 else를 읽는지 검사해보자!")
-                    # parent에게 키값을 전달하기 전에는 그전의 subTree로
+
+                    # parent에게 키값을 전달하기 전에는 그IN전의 subTree로
+                    # 9->9,11로 바뀌어야 한다.
+                    print("{} :이것이 내가 알고 싶은 노드의 추가되기 전단계".format(node.parent.keys))
+                    node.parent.keys.append(temp.keys[0])
+                    print("{} :이것이 내가 알고 싶은 노드".format(node.parent.keys))
                     node.parent.subTrees.append(temp)
                     node.parent.subTrees.sort()
-                    node.parent.keys.append(temp.keys[0])
                     # 원래 존재하던 parent에 key값을 넣어 주었다.
                     node.parent.keys.sort()
 
@@ -90,13 +102,14 @@ class B_PLUS_TREE:
                     node.parent = Node()
                     node.parent.isLeaf = False
                     temp.parent = node.parent
+                    node.parent.subTrees = [node, temp]
                     self.root = node.parent
                     node.parent.keys.append(up_to_parentKey)
                     # 여기까지 되면 parent를 만들긴함.root노드 생성
                     # 기존 서브트리가 있긴했다!
                     # 아직 분할을 하지도 않았다!!
+
                     self.subTree(node, temp, mid)
-                    node.parent.subTrees = [node, temp]
                 else:
                     # 일단 여기는 insert 10이 되면 하자
                     # 왜 여기를 안읽지?!!?
@@ -122,15 +135,21 @@ class B_PLUS_TREE:
             # node.keys[mid-1]이 분할되는 key의 바로 직전 key값!
 
             for i, elem in enumerate(node.subTrees):
-                if elem.keys[0] == node.keys[mid-1]:
+                if elem.keys[0] == node.keys[mid]:
                     # 이게 앞부분 노드가 가져가야할 subTree의 마지막 노드!
                     index = i
+                    # index ==3 이 된다. 4번째라는뜻.
+                    # mid는 현재 2이다.
                     break
             temp.keys = node.keys[mid+1:]
             node.keys = node.keys[:mid]
 
-            temp.subTrees = node.subTrees[index+1:]
-            node.subTrees = node.subTrees[:index+1]
+            temp.subTrees = node.subTrees[index:]
+            node.subTrees = node.subTrees[:index]
+
+            # 자식 노드 입장에서 parent를 다시 지정해줘야만 한다!
+            for i in temp.subTrees:
+                i.parent = temp
 
         else:
             print("subtree 여기를 지나는 지 확인해보기")
@@ -148,37 +167,24 @@ class B_PLUS_TREE:
 
     def search(self, k):
         current_node = self.root
+        # print(current_node.keys)
         # 현재 노드가 child가 있다면 아래로 내려가야겠고
         # 없다면 leafnode라는 뜻이겠지.
         while current_node.isLeaf == False:
             # 만약 현재 node의 자식이 있다면?
-            flag = 0
-            temp_key = current_node.keys
-            for i, elem in enumerate(temp_key):
+            flag = 0  # 마지막 노드를 가져오기 위한 과정.
+            for i, elem in enumerate(current_node.keys):
                 if k < elem:
                     current_node = current_node.subTrees[i]
+                    # print(current_node.keys)
                     flag = 1
                     # print("다음꺼고름 ")
                     break
             if flag == 0:
+                # print(current_node.subTrees)
                 current_node = current_node.subTrees[-1]
-
-                # elif k >= elem:  # 이부분에서 뭔가 삔또가 상한거 같은데?
-                #     if i+1 == len(temp_key):
-                #         current_node = current_node.subTrees[i+1]
-                #         # print("마지막꺼 고름")
-                #         break
-                #     elif k < current_node.subTrees[i+1][0]:
-                #         current_node = current_node.subTrees[i+1]
-                #         # print("중간거!")
-                #         break
-                #     else:
-                #         continue
-                # if (i+1 == len(current_node.keys)):
-                #     current_node = current_node.subTrees[i+1]
-                #     break
-                # elif current_node.subTrees[i+1][0]>k:
-                #     current_node = current_node.subTrees[i+1]
+                # print(current_node.keys)
+        # print(current_node.keys)
         return current_node
 
     def insert(self, k):
@@ -190,6 +196,7 @@ class B_PLUS_TREE:
         # print("이것이 현재 노드의 key들 : {}".format(current_node.keys))
         # self.print_all(self.root)
         self.temp_all(self.root)
+        # self.print_leaf()
 
     def delete(self, k):
         pass
@@ -205,8 +212,10 @@ class B_PLUS_TREE:
     def temp_all(self, node):
         if node.isLeaf == False:
             print(node.keys)
+            print("subTree의 갯수 : {}".format(len(node.subTrees)))
             for index, i in enumerate(node.subTrees):
                 self.temp_all(i)
+
         else:
             print(node.keys)
 
@@ -220,29 +229,26 @@ class B_PLUS_TREE:
                 if node.isLeaf == False:
                     node = node.subTrees[i]
                     self.print_all(node)
-
         else:
             print(node.keys)
 
-    def print_leaf(self, node):
-
+    def print_leaf(self):
+        current_node = self.root
+        # if current_node == self.root:
+        #     print(current_node.keys)
+        # else:
         # current_node = Node()
         while current_node.isLeaf == False:
             current_node = current_node.subTrees[0]
-        print(current_node.keys)
-        # while len(current_node.keys) > 0:
-        #     print(current_node.keys)
-        #     if current_node.nextNode is None:
-        #         break
-        #     current_node = current_node.nextNode
-        # i = 1
-        # temp_node = copy.copy(current_node)
-        # while temp_node.nextNode is not None:
-        #     temp_node = temp_node.nextNode
-        #     i += 1
-        # for k in range(i):
-        #     print(current_node.keys)
-        #     current_node = current_node.nextNode
+
+        if current_node == self.root:
+            print(current_node.keys)
+        else:
+            flag = 0
+            while current_node.nextNode is not None:
+                print(current_node.keys)
+                current_node = current_node.nextNode
+            print(current_node.keys)
 
     def print_tree(self):
         pass
