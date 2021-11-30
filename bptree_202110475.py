@@ -113,6 +113,7 @@ class B_PLUS_TREE:
                     node.parent.keys.append(up_to_parentKey)
                     node.parent.keys.sort()
                     self.subTree(node, temp, mid)
+
                     node.parent.subTrees.append(temp)
                     node.parent.subTrees.sort()
                     # node.parent.subTrees.append(temp)
@@ -152,20 +153,19 @@ class B_PLUS_TREE:
 
             for i, elem in enumerate(node.subTrees):
                 # subtree가 isleaf이기때문에 등호가 존재.
-                flag = 0  # 마지막 노드 확인 위해서
                 if elem.keys[0] > node.keys[mid]:
                     # 처음으로 커지는 순간을 기준으로 나누면 된다!!
                     index = i
                     # 여기서 index는 2가 된다. mid는 여기서 1이다.
                     break
-                temp.keys = node.keys[mid+1:]
-                node.keys = node.keys[:mid]
+            temp.keys = node.keys[mid+1:]
+            node.keys = node.keys[:mid]
 
-                temp.subTrees = node.subTrees[index:]
-                node.subTrees = node.subTrees[:index]
+            temp.subTrees = node.subTrees[index:]
+            node.subTrees = node.subTrees[:index]
 
-                for i in temp.subTrees:
-                    i.parent = temp
+            for i in temp.subTrees:
+                i.parent = temp
 
     def search(self, k):
         current_node = self.root
