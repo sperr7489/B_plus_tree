@@ -106,8 +106,7 @@ class BplusTree:
             if (temp3[i] == n):
                 parentNode.values = parentNode.values[:i] + \
                     [value] + parentNode.values[i:]
-                parentNode.keys = parentNode.keys[:i +
-                                                  1] + [ndash] + parentNode.keys[i + 1:]
+                parentNode.keys = parentNode.keys[:i + 1] + [ndash] + parentNode.keys[i + 1:]
                 if (len(parentNode.keys) > parentNode.order):
                     parentdash = Node(parentNode.order)
                     parentdash.parent = parentNode.parent
