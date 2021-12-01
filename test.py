@@ -47,6 +47,7 @@
 # good = []
 # print(good)
 
+# -*- coding: utf-8 -*-
 
 import math
 
@@ -71,3 +72,7 @@ for i in test1:
 
 a = int(math.ceil(5.0/2)-1)
 print(a)
+
+good = [1, 2, 3, 4]
+print(test1, end='-')
+print(good)

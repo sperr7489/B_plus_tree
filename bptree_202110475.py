@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import math
 import sys
 
@@ -268,7 +270,7 @@ class B_PLUS_TREE:
         # 루트노드를 제외한 노드에 최소 key 갯수.
         min_num = int(math.ceil(float(self.order)/2)-1)
         flag = 0
-
+        merge_point = 0
         # 성공적으로 반환되었다면 해당 leaf node가 반환되었을 터이다.
         cur_node = self.search_key(k, flag)
         if cur_node == 0:
@@ -301,7 +303,7 @@ class B_PLUS_TREE:
                         # print("merge를 해야함")
                         tmp = cur_node.nextNode.keys[0]
                         cur_node.nextNode.keys += cur_node.keys
-                        cur_node.nextNode.sort()
+                        cur_node.nextNode.keys.sort()
                         cur_node.parent.subTrees.remove(cur_node)
                         cur_node.nextNode.prevNode = None
                         for i, key in enumerate(cur_node.parent.keys):
@@ -334,6 +336,7 @@ class B_PLUS_TREE:
                                         cur_node.parent.keys[i] = cur_node.nextNode.keys[1]
                                         del cur_node.nextNode.keys[0]
                                         break
+                                return
                         # 그럼 오른쪽에서 borrow했을 때도 문제가 발생
                         # 부모의 첫번째 자식이 아닐경우 무조건 merge는 왼쪽과 일어남.
                         # print("왼쪽에서 merge를 해야함")
@@ -346,6 +349,7 @@ class B_PLUS_TREE:
                             if tmp == key:
                                 cur_node.prevNode.parent.keys.remove(key)
                                 break
+                        return
 
                     elif len(cur_node.prevNode.keys) > min_num:
                         # print("왼쪽에서 borrow만 해도됨")
@@ -362,12 +366,13 @@ class B_PLUS_TREE:
 
         elif self.check_only_leaf(cur_node, k) == 1:
             # k가 index node에도 존재하는 경우라면?
+            index = 0
             if len(cur_node.keys) > min_num:
                 # 현재 노드가 index 노드에 있는데 그 현재노드의 키 갯수가 최소값보다 많을 경우엔
                 # 그 key값을 지우고 그 인덱스에 그 key값 다음에 있는것을 넣으면 된다.
+                # changed_key는 index가 바뀌게 될 값이다.
                 changed_key = cur_node.keys[1]
                 cur_node.keys.remove(k)  # 우선 지워준다.
-                index = 0
                 index_node = self.search_indexNode(k, index)[0]
                 index = self.search_indexNode(k, index)[1]
                 index_node.keys[index] = changed_key
@@ -376,14 +381,39 @@ class B_PLUS_TREE:
                 if cur_node == cur_node.parent.subTrees[0]:
                     # 해당 부모노드의 자식중 첫번째라면 next노드로 처리해준다.
                     cur_node.keys.remove(k)  # 우선 지워준다.
-                    print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
+                    # print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
                     if len(cur_node.nextNode.keys) == min_num:
                         # 그럼 borrow했을 때도 문제가 발생
-                        print("merge를 해야함")
+                        # print("merge를 해야함")
+                        changed_key = cur_node.nextNode.keys[0]
+                        index_node = self.search_indexNode(k, index)[0]
+                        index = self.search_indexNode(k, index)[1]
+                        cur_node.keys += cur_node.nextNode.keys
+                        # 이부분 잘봐야한다.
+                        cur_node.parent.subTrees.remove(cur_node.nextNode)
+                        cur_node.nextNode = cur_node.nextNode.nextNode
+                        for i, key in enumerate(cur_node.parent.keys):
+                            if key == changed_key:
+                                cur_node.nextNode.parent.keys.remove(key)
+                                break
+                        index_node.keys[index] = changed_key
                     elif len(cur_node.nextNode.keys) > min_num:
-                        print("borrow만 해도됨")
-                else:
-                    print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
+                        # print("오른쪽에서 borrow만 해도됨")
+                        changed_key = cur_node.nextNode.keys[0]
+                        index_node = self.search_indexNode(k, index)[0]
+                        index = self.search_indexNode(k, index)[1]
+                        # index가 어디에서 대응되는 지에 대한 노드
+                        cur_node.keys.append(cur_node.nextNode.keys[0])
+
+                        for i, key in enumerate(cur_node.parent.keys):
+                            if key == cur_node.nextNode.keys[0]:
+                                cur_node.parent.keys[i] = cur_node.nextNode.keys[1]
+                                del cur_node.nextNode.keys[0]
+                                break
+                        index_node.keys[index] = changed_key
+
+                else:  # subTree의 첫번째가 아니고 index_node를 건들때
+                    # print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
                     cur_node.keys.remove(k)  # 우선 지워준다.
                     if len(cur_node.prevNode.keys) == min_num:
                         if(cur_node.nextNode is not None):
@@ -391,12 +421,41 @@ class B_PLUS_TREE:
                             # 지금 여긴 prev,next 모두에서 문제가 발생하는 경우다.
                             # 그럴땐 그냥 왼쪽에서 처리를 해준다.
                             if len(cur_node.nextNode.keys) > min_num:
-                                print("오른쪽에서 borrow를 해준다.")
+                                # print("오른쪽에서 borrow를 해준다.")
+                                # print(cur_node.keys)
+
+                                changed_key = cur_node.nextNode.keys[0]
+                                index_node = self.search_indexNode(k, index)[0]
+                                index = self.search_indexNode(k, index)[1]
+                                index_node.keys[index] = changed_key
+                                # print(index_node.keys)
+                                cur_node.keys.append(changed_key)
+                                cur_node.nextNode.keys.remove(changed_key)
+
+                                cur_node.parent.keys[index +
+                                                     1] = cur_node.nextNode.keys[0]
+
+                                return
                         # 그럼 오른쪽에서 borrow했을 때도 문제가 발생
                         # 부모의 첫번째 자식이 아닐경우 무조건 merge는 왼쪽과 일어남.
-                        print("왼쪽에서 merge를 해야함")
+                        # print("왼쪽에서 merge를 해야함")
+                        changed_key = cur_node.prevNode.keys[-1]
+                        index_node = self.search_indexNode(k, index)[0]
+                        index = self.search_indexNode(k, index)[1]
+                        del index_node.keys[index]
+                        cur_node.parent.subTrees.remove(cur_node)
+                        cur_node.prevNode.nextNode = cur_node.nextNode
+                        cur_node.prevNode.keys += cur_node.keys
+
                     elif len(cur_node.prevNode.keys) > min_num:
-                        print("왼쪽에서 borrow만 해도됨")
+                        # print("왼쪽에서 borrow만 해도됨")
+                        changed_key = cur_node.prevNode.keys[-1]
+                        index_node = self.search_indexNode(k, index)[0]
+                        index = self.search_indexNode(k, index)[1]
+                        cur_node.keys.append(changed_key)
+                        cur_node.keys.sort()
+                        index_node.keys[index] = changed_key
+                        cur_node.prevNode.keys.remove(changed_key)
 
     def check_only_leaf(self, node, k):
         # node 자체가 root일 것은 생각안해도됨. 그건 이미 걸렀음.
@@ -425,22 +484,22 @@ class B_PLUS_TREE:
             print("subTree의 갯수 : {}".format(len(node.subTrees)))
             for index, i in enumerate(node.subTrees):
                 self.temp_all(i)
-
         else:
             print(node.keys)
 
     def print_all(self, node):
-        if node.isLeaf == False:
-            # leaf node가 아닐때
-            print(node.keys)
-            for i, tmp in enumerate(node.subTrees):
-                print(tmp.keys)
-                print("-------------")
-                if node.isLeaf == False:
-                    node = node.subTrees[i]
-                    self.print_all(node)
-        else:
-            print(node.keys)
+        if self.root.isLeaf == True:
+            print(self.root.keys)
+        elif node.isLeaf == False:
+            # root 노드가 자식이 있을 때
+            print(node.keys, end="-")
+            for i in node.subTrees:
+                if i == node.subTrees[-1]:
+                    print(i.keys)
+                else:
+                    print(i.keys, end=",")
+            for i in node.subTrees:
+                self.print_all(i)
 
     def print_leaf(self):
         current_node = self.root
@@ -460,16 +519,57 @@ class B_PLUS_TREE:
                 current_node = current_node.nextNode
             print(current_node.keys)
 
+    # def print_T(self, node):
+    #     while node.isLeaf == False:
+    #         # 들어온 노드가 leaf node가 아니라면?
+    #         print(node.keys, end="-")
+    #         for i, elem in enumerate(node.subTrees):
+    #             if i+1 == len(node.subTrees):
+    #                 print(elem.keys)
+    #             else:
+    #                 print(elem.keys, end=",")
+    #             node = elem
+
     def print_tree(self):
-        self.temp_all(self.root)
+        self.print_all(self.root)
         pass
 
     def find_range(self, k_from, k_to):
+
         pass
 
     def find(self, k):
+        flag = 0
+        if self.search_key(k, flag) == 0:
+            print("NONE")
+            return
 
-        pass
+        if self.root.isLeaf == True:
+            for i in self.root:
+                if i == k:
+                    print(self.root.keys)
+                    return
+        current_node = self.root
+        # print(current_node.keys)
+        # 현재 노드가 child가 있다면 아래로 내려가야겠고
+        # 없다면 leafnode라는 뜻이겠지.
+        while current_node.isLeaf == False:
+            # 만약 현재 node의 자식이 있다면?
+            print(current_node.keys, end="-")
+            flag = 0  # 마지막 노드를 가져오기 위한 과정.
+            for i, elem in enumerate(current_node.keys):
+                if k < elem:
+                    current_node = current_node.subTrees[i]
+                    # print(current_node.keys)
+                    flag = 1
+                    # print("다음꺼고름 ")
+                    break
+            if flag == 0:
+                # print(current_node.subTrees)
+                current_node = current_node.subTrees[-1]
+                # print(current_node.keys)
+        # print(current_node.keys)
+        print(current_node.keys)
 
 
 def main():
