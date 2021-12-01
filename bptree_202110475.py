@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+import math
 import sys
-import copy
 
 
 class Node:
@@ -13,6 +13,7 @@ class Node:
         self.isLeaf = True
         # leaf node has next node pointer
         self.nextNode = None
+        self.prevNode = None
 
 
 class B_PLUS_TREE:
@@ -167,7 +168,8 @@ class B_PLUS_TREE:
             for i in temp.subTrees:
                 i.parent = temp
 
-    def search(self, k):
+    def search_node(self, k):
+
         current_node = self.root
         # print(current_node.keys)
         # 현재 노드가 child가 있다면 아래로 내려가야겠고
@@ -190,18 +192,199 @@ class B_PLUS_TREE:
         return current_node
 
     def insert(self, k):
-        current_node = self.search(k)
+        current_node = self.search_node(k)
         current_node.keys.append(k)
         current_node.keys.sort()
         # 선택된 node에 대한 분할 과정 여부를 판단하고 진행한다.
         self.split(current_node)
         # print("이것이 현재 노드의 key들 : {}".format(current_node.keys))
         # self.print_all(self.root)
-        self.temp_all(self.root)
+        # self.temp_all(self.root)
         # self.print_leaf()
 
+# leaf에서 prev_node를 만들기 위한 함수
+    def make_prev(self):
+        cur_node = self.root
+        flag = 0
+        while cur_node.isLeaf == False:
+            cur_node = cur_node.subTrees[0]
+            flag = 1  # 한번이라도 바꼈다면 node가 root 노드만 있는것이 아님.
+        # leaf의 첫번째까지 옴.
+
+        if flag != 0:
+            prev_node = cur_node
+            cur_node = cur_node.nextNode
+
+            while cur_node.nextNode is not None:
+                cur_node.prevNode = prev_node
+                cur_node = cur_node.nextNode
+                prev_node = prev_node.nextNode
+            cur_node.prevNode = prev_node
+
+    def search_key(self, k, flag):
+        head_node = self.root
+        while head_node.isLeaf == False:
+            # 만약 자식이 존재한다면?
+            head_node = head_node.subTrees[0]
+
+        while head_node.nextNode is not None:
+            for key in head_node.keys:
+                if key == k:
+                    flag = 1  # 해당 key값이 있다는 것을 뜻한다.
+                    return head_node
+            head_node = head_node.nextNode
+        # 여기까지 온거면 마지막 node를 가리킨다는 뜻이다.
+        for key in head_node.keys:
+            if key == k:
+                flag = 1
+                return head_node
+        flag = 0
+        return flag  # 0을 반환함으로써 해당 키가 없다는 것을 의미한다.
+
+    def search_indexNode(self, k, index):
+        # index node 찾기
+        cur_node = self.root
+        flag = 0
+        for i, elem in enumerate(cur_node.keys):
+            # 우선 root 부터 검사한다.
+            if elem == k:
+                index = i
+                return [cur_node, index]
+        while cur_node.isLeaf == False:
+            # 현재 노드가 leaf가 아닐 때에만!
+            for i, elem in enumerate(cur_node.keys):
+                if k < elem:
+                    cur_node = cur_node.subTrees[i]
+                    flag = 1
+                    break
+                elif k == elem:
+                    index = i  # 이것은 그 노드에서 그 k값이 몇번째인지 알려주기 위함.
+                    return [cur_node, index]
+            if flag == 0:
+                cur_node = cur_node.subTrees[-1]
+
     def delete(self, k):
-        pass
+        self.make_prev()
+        # 루트노드를 제외한 노드에 최소 key 갯수.
+        min_num = int(math.ceil(float(self.order)/2)-1)
+        flag = 0
+
+        # 성공적으로 반환되었다면 해당 leaf node가 반환되었을 터이다.
+        cur_node = self.search_key(k, flag)
+        if cur_node == 0:
+            print("해당 키값은 존재하지 않는다. ")
+        # else:
+            # 여기서부터 delete에 대한 과정을 시작하면된다.
+            # 해당 key가 leaf_node에만 존재하는 경우.
+        elif cur_node == self.root:
+            # 만약 leaf node 자체가 root라면 그냥 단순히 삭제해도 괜찮겠지!
+            cur_node.keys.remove(k)
+            return
+        elif self.check_only_leaf(cur_node, k) == 0:
+            print("그럼 여기는?")
+            print(min_num)
+            # k가 leaf node에만 존재하는 경우!
+            if len(cur_node.keys) > min_num:
+                cur_node.keys.remove(k)
+            elif len(cur_node.keys) == min_num:
+                # 지우려고 하는 key의 갯수가 최소 갯수만큼이면 지웠을 때 문제가 생기므로
+                # borrow를 하든 merge를 하든 해야한다.
+                # 이는 단순히 borrow의 방향을 결정짓는 것뿐
+                if cur_node == cur_node.parent.subTrees[0]:
+                    # 해당 부모노드의 자식중 첫번째라면 오른쪽에서 가져온다.
+                    cur_node.keys.remove(k)  # 우선 지워준다.
+                    # 지우고 무조건 최소갯수보다 적어지겠지? 이 조건문의 조건절을 보면 확인 가능
+                    # merge 혹은 borrow상황이 발생한다.
+                    # borrow시 문제가 발생하는지 안하는지 판단
+                    if len(cur_node.nextNode.keys) == min_num:
+                        # 그럼 borrow했을 때도 문제가 발생
+                        print("merge를 해야함")
+                        tmp = cur_node.nextNode.keys[0]
+                        cur_node.nextNode.append(cur_node)
+                        cur_node.nextNode.sort()
+                        cur_node.parent.subTrees.remove(cur_node)
+                        cur_node.nextNode.prevNode = None
+                        for i, key in enumerate(cur_node.parent.keys):
+                            if key == tmp:
+                                cur_node.nextNode.parent.keys.remove(key)
+                                break
+
+                    elif len(cur_node.nextNode.keys) > min_num:
+                        print("여기를 지난다?")
+                        cur_node.keys.append(cur_node.nextNode.keys[0])
+                        # borrow를 일단 함.
+                        for i, key in enumerate(cur_node.parent.keys):
+                            if key == cur_node.nextNode.keys[0]:
+                                cur_node.parent.keys[i] = cur_node.nextNode.keys[1]
+                                del cur_node.nextNode.keys[0]
+                                break
+                        print("borrow만 해도됨")
+                else:  # 단순히 여기선 오른쪽 왼쪽 노드로부터!
+                    cur_node.keys.remove(k)  # 우선 지워준다.
+                    if len(cur_node.prevNode.keys) == min_num:
+                        if(cur_node.nextNode is not None):
+                            # 왼쪽 노드에서 가져오는 건 문제가 발생한다. 그럼 다음 노드에서 가져온다면?
+                            # 지금 여긴 prev,next 모두에서 문제가 발생하는 경우다.
+                            # 그럴땐 그냥 왼쪽에서 처리를 해준다.
+                            if len(cur_node.nextNode.keys) > min_num:
+                                print("오른쪽에서 borrow를 해준다.")
+                        # 그럼 오른쪽에서 borrow했을 때도 문제가 발생
+                        # 부모의 첫번째 자식이 아닐경우 무조건 merge는 왼쪽과 일어남.
+                        print("왼쪽에서 merge를 해야함")
+                    elif len(cur_node.prevNode.keys) > min_num:
+                        print("왼쪽에서 borrow만 해도됨")
+        elif self.check_only_leaf(cur_node, k) == 1:
+            # k가 index node에도 존재하는 경우라면?
+            if len(cur_node.keys) > min_num:
+                # 현재 노드가 index 노드에 있는데 그 현재노드의 키 갯수가 최소값보다 많을 경우엔
+                # 그 key값을 지우고 그 인덱스에 그 key값 다음에 있는것을 넣으면 된다.
+                changed_key = cur_node.keys[1]
+                cur_node.keys.remove(k)  # 우선 지워준다.
+                index = 0
+                index_node = self.search_indexNode(k, index)[0]
+                index = self.search_indexNode(k, index)[1]
+                print("여기 ??!")
+                print(index)
+                index_node.keys[index] = changed_key
+            elif len(cur_node.keys) == min_num:
+                # 지우려고하는 key의 Node가 최소 갯수일때 그냥 지우면 클남!!
+                if cur_node == cur_node.parent.subTrees[0]:
+                    # 해당 부모노드의 자식중 첫번째라면 next노드로 처리해준다.
+                    cur_node.keys.remove(k)  # 우선 지워준다.
+                    print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
+                    if len(cur_node.nextNode.keys) == min_num:
+                        # 그럼 borrow했을 때도 문제가 발생
+                        print("merge를 해야함")
+                    elif len(cur_node.nextNode.keys) > min_num:
+                        print("borrow만 해도됨")
+                else:
+                    print("index node까지 처리를 해주어야 한다는 게 중요하다. ")
+                    cur_node.keys.remove(k)  # 우선 지워준다.
+                    if len(cur_node.prevNode.keys) == min_num:
+                        if(cur_node.nextNode is not None):
+                            # 왼쪽 노드에서 가져오는 건 문제가 발생한다. 그럼 다음 노드에서 가져온다면?
+                            # 지금 여긴 prev,next 모두에서 문제가 발생하는 경우다.
+                            # 그럴땐 그냥 왼쪽에서 처리를 해준다.
+                            if len(cur_node.nextNode.keys) > min_num:
+                                print("오른쪽에서 borrow를 해준다.")
+                        # 그럼 오른쪽에서 borrow했을 때도 문제가 발생
+                        # 부모의 첫번째 자식이 아닐경우 무조건 merge는 왼쪽과 일어남.
+                        print("왼쪽에서 merge를 해야함")
+                    elif len(cur_node.prevNode.keys) > min_num:
+                        print("왼쪽에서 borrow만 해도됨")
+
+    def check_only_leaf(self, node, k):
+        # node 자체가 root일 것은 생각안해도됨. 그건 이미 걸렀음.
+        ret = 0
+        while node != self.root:
+            for i in node.parent.keys:
+                if i == k:
+                    # index 노드에도 존재한다.
+                    ret = 1
+                    return ret
+            node = node.parent
+        ret = 0  # leaf node에만 존재한다는 뜻이다.
+        return ret
 
     def print_root(self):
         l = "["
@@ -253,6 +436,7 @@ class B_PLUS_TREE:
             print(current_node.keys)
 
     def print_tree(self):
+        self.temp_all(self.root)
         pass
 
     def find_range(self, k_from, k_to):

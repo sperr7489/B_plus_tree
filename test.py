@@ -48,6 +48,9 @@
 # print(good)
 
 
+import math
+
+
 babo = [[1, 2], [3, 4, 5], [12, 2, 1, 5, 1]]
 test1 = babo[:1]
 test2 = babo[1:]
@@ -59,3 +62,12 @@ test1 = test2
 test1 = [2, 3, 4, 5, 5, 6, 7, 7]
 print(test1)
 print(test2)
+k = 2
+test1.remove(k)
+
+for i in test1:
+    print(i)
+
+
+a = int(math.ceil(5.0/2)-1)
+print(a)
