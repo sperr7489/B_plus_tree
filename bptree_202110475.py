@@ -217,7 +217,7 @@ class B_PLUS_TREE:
             prev_node = cur_node
             cur_node = cur_node.nextNode
 
-            while cur_node.nextNode is not None:
+            while cur_nod is not None:
                 cur_node.prevNode = prev_node
                 cur_node = cur_node.nextNode
                 prev_node = prev_node.nextNode
@@ -309,6 +309,11 @@ class B_PLUS_TREE:
                         for i, key in enumerate(cur_node.parent.keys):
                             if key == tmp:
                                 cur_node.nextNode.parent.keys.remove(key)
+                                if cur_node.nextNode.parent == self.root:
+                                    if len(cur_node.nextNode.parent.keys) == 0:
+                                        self.root = cur_node.nextNode
+                                        self.root.isLeaf = True
+                                        #
                                 break
 
                     elif len(cur_node.nextNode.keys) > min_num:
@@ -348,6 +353,12 @@ class B_PLUS_TREE:
                         for i, key in enumerate(node.parent.keys):
                             if tmp == key:
                                 cur_node.prevNode.parent.keys.remove(key)
+                                # 삭제할 때 문제가 발생할 수 있음.
+                                if cur_node.prevNode.parent == self.root:
+                                    if len(cur_node.prevNode.parent.keys) == 0:
+                                        self.root = cur_node.prevNode
+                                        self.root.isLeaf = True
+
                                 break
                         return
 
@@ -531,12 +542,30 @@ class B_PLUS_TREE:
     #             node = elem
 
     def print_tree(self):
-        self.print_all(self.root)
+        # self.print_all(self.root)
+        self.temp_all(self.root)
         pass
 
     def find_range(self, k_from, k_to):
-
-        pass
+        cur_node = self.root
+        while cur_node.isLeaf == False:
+            cur_node = cur_node.subTrees[0]
+        # 조건문이 끝나면 cur_node는 가장 앞에 있는 node이다.
+        while cur_node.nextNode is not None:
+            for i in cur_node.keys:
+                if i >= k_from and i < k_to:
+                    print(i, end=",")
+                elif i == k_to:
+                    print(i)
+                    return
+            cur_node = cur_node.nextNode
+        # 조건문을 빠져나왔을 땐 마지막 노드가 되어 있을 것이다.
+        for i in cur_node.keys:
+            if i >= k_from and i < k_to:
+                print(i, end=",")
+            elif i == k_to:
+                print(i)
+                return
 
     def find(self, k):
         flag = 0
